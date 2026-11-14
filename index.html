@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1a2238">
+<title>AION2 リポップタイマー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#1a2238;
+  --panel:#222b45;
+  --panel-2:#293653;
+  --border:#3a4b6e;
+  --text:#f3f6ff;
+  --muted:#aab8d2;
+  --accent:#9fd3ff;
+  --blue:#2a5f78;
+  --warning:#f4c66d;
+  --danger:#d94c4c;
+  --success:#79c99a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;padding:24px 18px 40px;
+  background:var(--bg);color:var(--text);
+  font-family:"M PLUS 2",sans-serif;
+}
+button,input{font:inherit}
+button{
+  border:1px solid #5a6b8e;border-radius:7px;
+  background:#3a4b6e;color:#fff;padding:8px 13px;
+  cursor:pointer;transition:background .15s,border-color .15s;
+}
+button:hover{background:#4b5c80}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:#2a5f78;border-color:#4b829d}
+button.primary:hover{background:#34718f}
+button.subtle{background:transparent;border-color:var(--border);color:var(--muted)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.container{max-width:980px;margin:0 auto}
+header{text-align:center;margin:2px 0 22px}
+h1{font-size:clamp(25px,4vw,34px);margin:0 0 5px;letter-spacing:.03em}
+.subtitle{color:var(--muted);font-size:13px}
+.clock{
+  text-align:center;background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:12px;margin-bottom:16px;
+}
+.clock-label{font-size:12px;color:var(--muted)}
+.clock-time{font-size:27px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)}
+.settings{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;margin-bottom:18px;
+}
+.section-title{font-size:15px;font-weight:700;color:var(--accent);margin:0 0 12px}
+.base-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.base-row input{
+  min-height:40px;padding:7px 10px;background:#151c2e;color:var(--text);
+  border:1px solid #52617f;border-radius:7px;
+}
+.base-row input[type="datetime-local"]{min-width:245px}
+.base-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--muted);margin:9px 0 0;line-height:1.65}
+.sound-row{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid var(--border)}
+.toggle{display:flex;gap:8px;align-items:center;font-size:13px}
+.toggle input{accent-color:#69bce8;width:17px;height:17px}
+.volume-control{display:flex;gap:9px;align-items:center;font-size:13px;color:var(--muted)}
+.volume-control input{width:145px;accent-color:#69bce8}
+.sound-select{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.sound-select select{min-height:36px;padding:6px 30px 6px 9px;background:#151c2e;color:var(--text);border:1px solid #52617f;border-radius:7px;font:inherit}
+#volume-value{min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+.timer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.timer-card{
+  overflow:hidden;background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;
+}
+.card-head{padding:16px 18px 13px;background:linear-gradient(120deg,#293b58,#24304a);border-bottom:1px solid var(--border)}
+.card-head h2{font-size:18px;margin:0 0 4px}
+.card-head p{margin:0;color:var(--muted);font-size:12px}
+.card-body{padding:16px 18px}
+.timer-base{display:grid;gap:8px;padding:11px 12px;margin-bottom:14px;background:#1b263d;border:1px solid #344563;border-radius:8px}
+.timer-base-label{font-size:12px;color:var(--muted)}
+.timer-base-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.timer-base-row input{min-width:0;flex:1;min-height:38px;padding:6px 9px;background:#151c2e;color:var(--text);border:1px solid #52617f;border-radius:7px}
+.timer-base-actions{display:flex;gap:7px;flex-wrap:wrap}
+.timer-base-actions button{font-size:12px;padding:7px 10px}
+.event-time{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
+.event-time .label{font-size:12px;color:var(--muted)}
+.event-time strong{font-size:19px;font-variant-numeric:tabular-nums}
+.countdown{
+  font-size:clamp(25px,4vw,34px);font-weight:700;letter-spacing:.025em;
+  font-variant-numeric:tabular-nums;color:#fff;margin:2px 0 13px;
+}
+.countdown.soon{color:var(--warning)}
+.countdown.passed{color:var(--success)}
+.alarm-list{display:grid;gap:7px}
+.alarm{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  border-radius:7px;padding:9px 10px;background:#1b263d;border:1px solid #344563;
+  font-size:13px;
+}
+.alarm-left{display:flex;align-items:center;gap:9px}
+.alarm-time{font-variant-numeric:tabular-nums;color:#dce8ff}
+.alarm-status{font-size:11px;color:var(--muted);white-space:nowrap}
+.alarm.done{opacity:.55}
+.alarm.done .alarm-status{color:var(--success)}
+.alarm.next{border-color:#7a6a3c;background:#302e2a}
+.alarm.next .alarm-status{color:var(--warning)}
+.dot{width:8px;height:8px;border-radius:50%;background:#7183a3;flex:none}
+.alarm.next .dot{background:var(--warning);box-shadow:0 0 8px #f4c66d88}
+.alarm.done .dot{background:var(--success)}
+.footer-note{font-size:12px;color:var(--muted);line-height:1.7;margin:16px 2px 0}
+.status-line{text-align:center;color:var(--muted);font-size:12px;margin-top:16px;min-height:20px}
+@media(max-width:680px){
+  body{padding:16px 12px 28px}
+  .timer-grid{grid-template-columns:1fr}
+  .settings{padding:14px}
+  .base-row input[type="datetime-local"]{width:100%;min-width:0}
+  .base-actions{width:100%}
+  .base-actions button{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>AION2 リポップタイマー</h1>
+    <div class="subtitle">基準時刻を起点に周期的なリポップと通知時刻を自動計算</div>
+  </header>
+
+  <section class="clock" aria-live="off">
+    <div class="clock-label">現在時刻</div>
+    <div class="clock-time" id="current-time">--:--:--</div>
+  </section>
+
+  <section class="settings">
+    <h2 class="section-title">通知設定</h2>
+    <div class="sound-row" style="margin-top:0;padding-top:0;border-top:0">
+      <label class="toggle"><input id="sound-enabled" type="checkbox" checked> 通知音を鳴らす</label>
+      <label class="sound-select" for="sound-type">
+        通知音
+        <select id="sound-type">
+          <option value="standard">標準電子音</option>
+          <option value="chime">やさしいチャイム</option>
+          <option value="retro">レトロゲーム音</option>
+          <option value="alarm">アラーム</option>
+          <option value="bell">ベル</option>
+        </select>
+      </label>
+      <label class="volume-control" for="volume">
+        音量
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.3">
+        <span id="volume-value">30%</span>
+      </label>
+      <button id="test-sound">音テスト</button>
+    </div>
+  </section>
+
+  <main class="timer-grid">
+    <section class="timer-card" data-timer="long">
+      <div class="card-head">
+        <h2>ガルトゥア / ラグタ</h2>
+        <p>基準時刻から11時間ごとに繰り返し</p>
+      </div>
+      <div class="card-body">
+        <div class="timer-base">
+          <label class="timer-base-label" for="long-base-time">11時間タイマー専用の基準時刻</label>
+          <div class="timer-base-row">
+            <input id="long-base-time" type="datetime-local" aria-label="11時間タイマーの基準時刻">
+            <div class="timer-base-actions">
+              <button class="primary" data-apply-base="long">反映</button>
+              <button class="subtle" data-reset-base="long">初期値に戻す</button>
+            </div>
+          </div>
+        </div>
+        <div class="event-time"><span class="label">次回リポップ予定</span><strong id="long-target">--/-- --:--</strong></div>
+        <div class="countdown" id="long-countdown">--:--:--</div>
+        <div class="alarm-list" id="long-alarms"></div>
+      </div>
+    </section>
+
+    <section class="timer-card" data-timer="short">
+      <div class="card-head">
+        <h2>タルタン / カシャパ</h2>
+        <p>基準時刻から6時間ごとに繰り返し</p>
+      </div>
+      <div class="card-body">
+        <div class="timer-base">
+          <label class="timer-base-label" for="short-base-time">6時間タイマー専用の基準時刻</label>
+          <div class="timer-base-row">
+            <input id="short-base-time" type="datetime-local" aria-label="6時間タイマーの基準時刻">
+            <div class="timer-base-actions">
+              <button class="primary" data-apply-base="short">反映</button>
+              <button class="subtle" data-reset-base="short">初期値に戻す</button>
+            </div>
+          </div>
+        </div>
+        <div class="event-time"><span class="label">次回リポップ予定</span><strong id="short-target">--/-- --:--</strong></div>
+        <div class="countdown" id="short-countdown">--:--:--</div>
+        <div class="alarm-list" id="short-alarms"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="status-line" id="status" role="status">基準時刻を確認してください。</div>
+  <p class="footer-note">
+    ※各タイマーは個別の基準時刻から、11時間・6時間ごとに繰り返しリポップします。基準時刻そのものではなく、最初のリポップは基準時刻の各時間後です。<br>
+    ※通知はこのページを開いている間に動作します。ブラウザやPCがスリープ中の場合、通知が遅れることがあります。<br>
+    ※初回はブラウザの仕様により、音テストなどのボタンを一度押して音声を有効化してください。
+  </p>
+</div>
+
+<script>
+"use strict";
+
+/*
+ * 初期基準時刻
+ * ここを書き換えると、初回起動時および「初期値に戻す」の時刻が変わります。
+ * 書式: YYYY-MM-DDTHH:mm （PCのローカル時刻）
+ */
+const DEFAULT_LONG_BASE_TIME = "2026-11-14T14:00";
+const DEFAULT_SHORT_BASE_TIME = "2026-11-14T14:00";
+
+const BASE_STORAGE_KEYS = {
+  long: "aion2_timer_long_base_time",
+  short: "aion2_timer_short_base_time"
+};
+const LEGACY_BASE_STORAGE_KEY = "aion2_timer_base_time";
+const SOUND_STORAGE_KEY = "aion2_timer_sound_enabled";
+const VOLUME_STORAGE_KEY = "aion2_timer_volume";
+const SOUND_TYPE_STORAGE_KEY = "aion2_timer_sound_type";
+
+const ALARM_OFFSETS = [
+  { minutes: 30, label: "30分前" },
+  { minutes: 10, label: "10分前" },
+  { minutes: 0, label: "リポップ" }
+];
+
+const timers = [
+  { id: "long", name: "ガルトゥア / ラグタ", hours: 11 },
+  { id: "short", name: "タルタン / カシャパ", hours: 6 }
+];
+
+const $ = (id) => document.getElementById(id);
+const soundEnabledInput = $("sound-enabled");
+const volumeInput = $("volume");
+const soundTypeInput = $("sound-type");
+const volumeValue = $("volume-value");
+const statusLine = $("status");
+
+const baseTimes = {
+  long: parseLocalDateTime(DEFAULT_LONG_BASE_TIME),
+  short: parseLocalDateTime(DEFAULT_SHORT_BASE_TIME)
+};
+let audioContext = null;
+let previousCheckTime = Date.now();
+
+
+function parseLocalDateTime(value) {
+  if (!value) return null;
+  const [datePart, timePart] = value.split("T");
+  if (!datePart || !timePart) return null;
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  const date = new Date(year, month - 1, day, hour, minute, 0, 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toLocalInputValue(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatDateTime(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}/${pad(date.getMonth()+1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return "00:00:00";
+  const totalSeconds = Math.ceil(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const hh = String(hours + days * 24).padStart(2, "0");
+  return `${hh}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+// 基準時刻から timer.hours ごとに発生する、次回のリポップ時刻を返す。
+function getTarget(timer, now = new Date()) {
+  const intervalMs = timer.hours * 60 * 60 * 1000;
+  const firstTargetMs = baseTimes[timer.id].getTime() + intervalMs;
+  const elapsed = now.getTime() - firstTargetMs;
+  const cycle = elapsed < 0 ? 0 : Math.floor(elapsed / intervalMs) + 1;
+  return new Date(firstTargetMs + cycle * intervalMs);
+}
+
+function getAlarmTime(target, offsetMinutes) {
+  return new Date(target.getTime() - offsetMinutes * 60 * 1000);
+}
+
+function renderTimer(timer, now) {
+  const target = getTarget(timer, now);
+  const targetEl = $(`${timer.id}-target`);
+  const countdownEl = $(`${timer.id}-countdown`);
+  const alarmsEl = $(`${timer.id}-alarms`);
+
+  targetEl.textContent = formatDateTime(target);
+  const remaining = target.getTime() - now.getTime();
+  countdownEl.textContent = formatCountdown(remaining);
+  countdownEl.classList.toggle("soon", remaining > 0 && remaining <= 30 * 60 * 1000);
+  countdownEl.classList.toggle("passed", remaining <= 0);
+
+  alarmsEl.innerHTML = "";
+  let nextAlarmKey = null;
+
+  for (const alarm of ALARM_OFFSETS) {
+    const at = getAlarmTime(target, alarm.minutes);
+    const key = `${timer.id}-${alarm.minutes}`;
+    const passed = now.getTime() >= at.getTime();
+    if (!passed && nextAlarmKey === null) nextAlarmKey = key;
+
+    const row = document.createElement("div");
+    row.className = "alarm";
+    if (passed) row.classList.add("done");
+    if (key === nextAlarmKey) row.classList.add("next");
+
+    const left = document.createElement("div");
+    left.className = "alarm-left";
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    const label = document.createElement("span");
+    label.textContent = alarm.label;
+    const time = document.createElement("span");
+    time.className = "alarm-time";
+    time.textContent = formatDateTime(at);
+    left.append(dot, label, time);
+
+    const state = document.createElement("span");
+    state.className = "alarm-status";
+    state.textContent = passed ? "経過" : (key === nextAlarmKey ? "次の通知" : "待機中");
+
+    row.append(left, state);
+    alarmsEl.appendChild(row);
+  }
+}
+
+function renderAll(now = new Date()) {
+  $("current-time").textContent =
+    `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}:${String(now.getSeconds()).padStart(2,"0")}`;
+  timers.forEach(timer => renderTimer(timer, now));
+}
+
+function unlockAudio() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!audioContext) audioContext = new AudioContextClass();
+  if (audioContext.state === "suspended") audioContext.resume();
+  return audioContext;
+}
+
+/*
+ * 通知音プリセット
+ * それぞれの音程・波形・長さ・間隔を Web Audio API で合成します。
+ * 外部の音声ファイルは不要です。
+ */
+const SOUND_PRESETS = {
+  standard: [
+    { frequency: 880, duration: 0.13, gap: 0.03, type: "sine" },
+    { frequency: 1175, duration: 0.13, gap: 0.03, type: "sine" }
+  ],
+  chime: [
+    { frequency: 784, duration: 0.24, gap: 0.07, type: "sine" },
+    { frequency: 988, duration: 0.28, gap: 0.07, type: "sine" },
+    { frequency: 1175, duration: 0.42, gap: 0.03, type: "sine" }
+  ],
+  retro: [
+    { frequency: 659, duration: 0.10, gap: 0.04, type: "square" },
+    { frequency: 784, duration: 0.10, gap: 0.04, type: "square" },
+    { frequency: 988, duration: 0.18, gap: 0.03, type: "square" }
+  ],
+  alarm: [
+    { frequency: 880, duration: 0.18, gap: 0.06, type: "triangle" },
+    { frequency: 660, duration: 0.18, gap: 0.06, type: "triangle" },
+    { frequency: 880, duration: 0.18, gap: 0.06, type: "triangle" },
+    { frequency: 660, duration: 0.18, gap: 0.03, type: "triangle" }
+  ],
+  bell: [
+    { frequency: 1046, duration: 0.42, gap: 0.08, type: "sine" },
+    { frequency: 1318, duration: 0.52, gap: 0.03, type: "sine" }
+  ]
+};
+
+function playAlarm() {
+  if (!soundEnabledInput.checked) return;
+  const volume = Number(volumeInput.value);
+  if (volume <= 0) return;
+  const ctx = unlockAudio();
+  if (!ctx) {
+    statusLine.textContent = "このブラウザでは音声を再生できません。";
+    return;
+  }
+
+  const preset = SOUND_PRESETS[soundTypeInput.value] || SOUND_PRESETS.standard;
+  let start = ctx.currentTime;
+
+  // 選択中の通知音パターンを3回繰り返す。
+  for (let repeat = 0; repeat < 3; repeat++) {
+    for (const note of preset) {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const end = start + note.duration;
+
+      oscillator.type = note.type;
+      oscillator.frequency.setValueAtTime(note.frequency, start);
+
+      // 波形ごとの音量差を抑え、クリックノイズを避けるため短いフェードを入れる。
+      const peak = volume * (note.type === "square" ? 0.11 : 0.2);
+      gain.gain.setValueAtTime(0.001, start);
+      gain.gain.linearRampToValueAtTime(peak, start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, end);
+
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(start);
+      oscillator.stop(end + 0.01);
+
+      start = end + note.gap;
+    }
+    // 繰り返しの区切りを少し空けて聞き取りやすくする。
+    if (repeat < 2) start += 0.22;
+  }
+}
+
+function checkAlarms(nowMs) {
+  for (const timer of timers) {
+    const intervalMs = timer.hours * 60 * 60 * 1000;
+    const firstTargetMs = baseTimes[timer.id].getTime() + intervalMs;
+
+    for (const alarm of ALARM_OFFSETS) {
+      // 各リポップ周期について、30分前・10分前・リポップ時刻を判定する。
+      const firstAlarmMs = firstTargetMs - alarm.minutes * 60 * 1000;
+      const firstCycle = Math.max(0, Math.floor((previousCheckTime - firstAlarmMs) / intervalMs) + 1);
+      const lastCycle = Math.floor((nowMs - firstAlarmMs) / intervalMs);
+
+      // 通常は1周期分だけ判定。PC復帰などで複数周期を飛び越えた場合も、
+      // 通過した各通知時刻を取りこぼさない。
+      for (let cycle = firstCycle; cycle <= lastCycle; cycle++) {
+        const alarmAt = firstAlarmMs + cycle * intervalMs;
+        if (previousCheckTime < alarmAt && nowMs >= alarmAt) {
+          playAlarm();
+          statusLine.textContent = `${timer.name}：${alarm.label}の通知`;
+        }
+      }
+    }
+  }
+}
+
+function applyBaseTime(timerId, value, message) {
+  const parsed = parseLocalDateTime(value);
+  if (!parsed) {
+    statusLine.textContent = "基準時刻を正しく入力してください。";
+    return;
+  }
+  baseTimes[timerId] = parsed;
+  const input = $(`${timerId}-base-time`);
+  input.value = toLocalInputValue(parsed);
+  localStorage.setItem(BASE_STORAGE_KEYS[timerId], input.value);
+  previousCheckTime = Date.now();
+  renderAll();
+  statusLine.textContent = message;
+}
+
+document.querySelectorAll("[data-apply-base]").forEach(button => {
+  button.addEventListener("click", () => {
+    unlockAudio();
+    const timerId = button.dataset.applyBase;
+    applyBaseTime(timerId, $(`${timerId}-base-time`).value,
+      `${timerId === "long" ? "11時間" : "6時間"}タイマーの基準時刻を変更しました。`);
+  });
+});
+
+document.querySelectorAll("[data-reset-base]").forEach(button => {
+  button.addEventListener("click", () => {
+    unlockAudio();
+    const timerId = button.dataset.resetBase;
+    const defaultValue = timerId === "long" ? DEFAULT_LONG_BASE_TIME : DEFAULT_SHORT_BASE_TIME;
+    applyBaseTime(timerId, defaultValue,
+      `${timerId === "long" ? "11時間" : "6時間"}タイマーをプログラムの初期基準時刻に戻しました。`);
+  });
+});
+
+$("test-sound").addEventListener("click", () => {
+  unlockAudio();
+  playAlarm();
+  statusLine.textContent = "音声テストを再生しました。";
+});
+
+soundEnabledInput.addEventListener("change", () => {
+  localStorage.setItem(SOUND_STORAGE_KEY, String(soundEnabledInput.checked));
+  if (soundEnabledInput.checked) unlockAudio();
+});
+
+soundTypeInput.addEventListener("change", () => {
+  localStorage.setItem(SOUND_TYPE_STORAGE_KEY, soundTypeInput.value);
+});
+
+volumeInput.addEventListener("input", () => {
+  volumeValue.textContent = `${Math.round(Number(volumeInput.value) * 100)}%`;
+  localStorage.setItem(VOLUME_STORAGE_KEY, volumeInput.value);
+});
+
+function initialize() {
+  // 旧バージョンの共通基準時刻があれば、個別設定がないタイマーへ引き継ぐ。
+  const legacyBase = localStorage.getItem(LEGACY_BASE_STORAGE_KEY);
+  const defaults = { long: DEFAULT_LONG_BASE_TIME, short: DEFAULT_SHORT_BASE_TIME };
+
+  for (const timer of timers) {
+    const savedBase = localStorage.getItem(BASE_STORAGE_KEYS[timer.id]);
+    const initialValue = savedBase || legacyBase || defaults[timer.id];
+    const parsed = parseLocalDateTime(initialValue) || parseLocalDateTime(defaults[timer.id]);
+    baseTimes[timer.id] = parsed;
+    $(`${timer.id}-base-time`).value = toLocalInputValue(parsed);
+    if (!savedBase) localStorage.setItem(BASE_STORAGE_KEYS[timer.id], toLocalInputValue(parsed));
+  }
+
+  const savedSound = localStorage.getItem(SOUND_STORAGE_KEY);
+  if (savedSound !== null) soundEnabledInput.checked = savedSound === "true";
+
+  const savedVolume = localStorage.getItem(VOLUME_STORAGE_KEY);
+  if (savedVolume !== null) volumeInput.value = savedVolume;
+
+  const savedSoundType = localStorage.getItem(SOUND_TYPE_STORAGE_KEY);
+  if (savedSoundType && SOUND_PRESETS[savedSoundType]) soundTypeInput.value = savedSoundType;
+  volumeValue.textContent = `${Math.round(Number(volumeInput.value) * 100)}%`;
+
+  // 起動時点で過去の通知は鳴らさず、次回周期の通知から監視する。
+  const now = Date.now();
+  previousCheckTime = now;
+  renderAll();
+  statusLine.textContent = "各タイマーの基準時刻を読み込みました。";
+}
+initialize();
+
+setInterval(() => {
+  const nowMs = Date.now();
+  checkAlarms(nowMs);
+  previousCheckTime = nowMs;
+  renderAll(new Date(nowMs));
+}, 250);
+</script>
+</body>
+</html>
